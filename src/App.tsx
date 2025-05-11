@@ -7,11 +7,13 @@ import FinancialAnalysisDetails from './components/FinancialAnalysisDetails';
 import CompanyComparison from './components/CompanyComparison';
 import ImprovedXBRLTableExtractor from './components/extractors/xbrl/ImprovedXBRLTableExtractor';
 import EnhancedXBRLTableExtractor from './components/extractors/xbrl/EnhancedXBRLTableExtractor';
+import EnhancedXBRLTableView from './components/table-view/EnhancedXBRLTableView';
 import { XBRLData, CommentSection } from './types/xbrl';
-import { ProcessedXBRLData } from './types/extractors/improved-xbrl-types';
+import { ProcessedXBRLData, XBRLExtractionOptions } from './types/extractors/improved-xbrl-types';
 import { parseXBRLFile } from './utils/xbrlParser';
 import { extractCommentsFromHTML } from './utils/htmlParser';
 import { extractFinancialData } from './utils/financialDataExtractor';
+import { extractEnhancedXBRL } from './utils/xbrl/enhanced-xbrl-extractor';
 import CommentsViewer from './components/CommentsViewer';
 
 /**
@@ -47,6 +49,7 @@ const AppContent: React.FC = () => {
   
   // 改善版XBRL抽出ツールからの処理データ
   const [processedXbrlData, setProcessedXbrlData] = useState<ProcessedXBRLData | null>(null);
+  const [useEnhancedMode, setUseEnhancedMode] = useState<boolean>(true);
   
   // ロード状態の管理
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -58,6 +61,7 @@ const AppContent: React.FC = () => {
   /**
    * XBRLファイルとHTMLファイルが選択されたときのハンドラー
    * ファイルを読み込み、パースしてXBRLデータとして状態を更新します
+   * 拡張モードが有効な場合は、拡張版XBRL抽出ツールも使用します
    */
   const handleFileUpload = async (xbrlFile: File, htmlFile?: File) => {
     setIsLoading(true);
@@ -91,6 +95,48 @@ const AppContent: React.FC = () => {
         extractedCompanyName = companyMatch[1];
       }
       
+      // 拡張版XBRL抽出ツールを使用した解析（これをメインとして使用）
+      if (useEnhancedMode) {
+        try {
+          const reader = new FileReader();
+          const xbrlContent = await new Promise<string>((resolve, reject) => {
+            reader.onload = (e) => {
+              if (e.target && typeof e.target.result === 'string') {
+                resolve(e.target.result);
+              } else {
+                reject(new Error('ファイル読み込みに失敗しました'));
+              }
+            };
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(xbrlFile);
+          });
+          
+          const enhancedResult = extractEnhancedXBRL(xbrlContent);
+          
+          if (enhancedResult.tables.length > 0) {
+            const processedResult: ProcessedXBRLData = {
+              success: true,
+              rawData: enhancedResult.tables,
+              hierarchical: {
+                metadata: {
+                  reportType: enhancedResult.tables[0].tableTitle || '財務諸表',
+                  unit: '円',
+                  periods: {
+                    current: '当期',
+                    previous: '前期'
+                  }
+                },
+                data: []
+              }
+            };
+            
+            setProcessedXbrlData(processedResult);
+          }
+        } catch (enhancedError) {
+          console.warn('拡張XBRLパーサーでの解析に失敗しました。基本パーサーの結果を使用します:', enhancedError);
+        }
+      }
+      
       // 主要企業のデータがない場合は主要企業として設定
       // ある場合は比較企業として追加
       if (!primaryXbrlData) {
@@ -121,8 +167,16 @@ const AppContent: React.FC = () => {
     setSecondaryCompanyNames([]);
     setCompanyName('');
     setProcessedXbrlData(null);
+    setComments([]);
     setError(null);
     setActiveTab('basic');
+  };
+  
+  /**
+   * 拡張モードの切り替え
+   */
+  const toggleEnhancedMode = () => {
+    setUseEnhancedMode(prev => !prev);
   };
   
   /**
@@ -258,6 +312,8 @@ const AppContent: React.FC = () => {
                 onFileUpload={handleFileUpload}
                 isLoading={isLoading}
                 isDarkMode={isDarkMode}
+                useEnhancedMode={useEnhancedMode}
+                onToggleEnhancedMode={toggleEnhancedMode}
               />
               
               {/* リセットボタン */}
@@ -353,7 +409,30 @@ const AppContent: React.FC = () => {
                 {/* XBRLデータビューアー */}
                 <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md transition-colors duration-300`}>
                   <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>XBRLデータビューアー</h2>
-                  <XBRLViewer xbrlData={primaryXbrlData} />
+                  {useEnhancedMode && processedXbrlData ? (
+                    <div>
+                      <div className="text-sm mb-4">
+                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
+                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>レポートタイプ: </span>
+                          <span>{processedXbrlData.hierarchical.metadata.reportType}</span>
+                        </div>
+                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
+                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>単位: </span>
+                          <span>{processedXbrlData.hierarchical.metadata.unit}</span>
+                        </div>
+                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded`}>
+                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>期間: </span>
+                          <span>{processedXbrlData.hierarchical.metadata.periods.current}</span>
+                        </div>
+                      </div>
+                      <EnhancedXBRLTableView 
+                        data={processedXbrlData}
+                        isDarkMode={isDarkMode}
+                      />
+                    </div>
+                  ) : (
+                    <XBRLViewer xbrlData={primaryXbrlData} />
+                  )}
                 </div>
                 
                 {/* 注記情報表示 */}
