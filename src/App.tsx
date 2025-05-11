@@ -7,9 +7,12 @@ import FinancialAnalysisDetails from './components/FinancialAnalysisDetails';
 import CompanyComparison from './components/CompanyComparison';
 import ImprovedXBRLTableExtractor from './components/extractors/xbrl/ImprovedXBRLTableExtractor';
 import EnhancedXBRLTableExtractor from './components/extractors/xbrl/EnhancedXBRLTableExtractor';
-import { XBRLData } from './types/xbrl';
+import { XBRLData, CommentSection } from './types/xbrl';
 import { ProcessedXBRLData } from './types/extractors/improved-xbrl-types';
 import { parseXBRLFile } from './utils/xbrlParser';
+import { extractCommentsFromHTML } from './utils/htmlParser';
+import { extractFinancialData } from './utils/financialDataExtractor';
+import CommentsViewer from './components/CommentsViewer';
 
 /**
  * メインアプリケーションコンポーネント
@@ -40,6 +43,7 @@ const AppContent: React.FC = () => {
   const [secondaryXbrlDataList, setSecondaryXbrlDataList] = useState<XBRLData[]>([]);
   // 比較企業の名前リスト
   const [secondaryCompanyNames, setSecondaryCompanyNames] = useState<string[]>([]);
+  const [comments, setComments] = useState<CommentSection[]>([]);
   
   // 改善版XBRL抽出ツールからの処理データ
   const [processedXbrlData, setProcessedXbrlData] = useState<ProcessedXBRLData | null>(null);
@@ -52,19 +56,34 @@ const AppContent: React.FC = () => {
   const [companyName, setCompanyName] = useState<string>('');
 
   /**
-   * XBRLファイルが選択されたときのハンドラー
+   * XBRLファイルとHTMLファイルが選択されたときのハンドラー
    * ファイルを読み込み、パースしてXBRLデータとして状態を更新します
    */
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = async (xbrlFile: File, htmlFile?: File) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // XBRLファイルを解析
-      const parsedData = await parseXBRLFile(file);
+      const parsedData = await parseXBRLFile(xbrlFile);
+      
+      if (htmlFile) {
+        try {
+          const reader = new FileReader();
+          reader.onload = async (e) => {
+            if (e.target && typeof e.target.result === 'string') {
+              const htmlContent = e.target.result;
+              const extractedComments = extractCommentsFromHTML(htmlContent);
+              setComments(extractedComments);
+            }
+          };
+          reader.readAsText(htmlFile);
+        } catch (htmlError) {
+          console.warn('HTMLファイルの解析に失敗しました:', htmlError);
+        }
+      }
       
       // ファイル名から会社名を抽出
-      const fileName = file.name;
+      const fileName = xbrlFile.name;
       const companyMatch = fileName.match(/_(.*?)_/);
       let extractedCompanyName = '企業名不明';
       
@@ -235,7 +254,11 @@ const AppContent: React.FC = () => {
             {/* XBRLファイルアップローダー */}
             <section className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mb-8 transition-colors duration-300`}>
               <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>XBRLファイルのアップロード</h2>
-              <XBRLUploader onFileUpload={handleFileUpload} />
+              <XBRLUploader 
+                onFileUpload={handleFileUpload}
+                isLoading={isLoading}
+                isDarkMode={isDarkMode}
+              />
               
               {/* リセットボタン */}
               {primaryXbrlData && (
@@ -332,6 +355,18 @@ const AppContent: React.FC = () => {
                   <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>XBRLデータビューアー</h2>
                   <XBRLViewer xbrlData={primaryXbrlData} />
                 </div>
+                
+                {/* 注記情報表示 */}
+                {comments.length > 0 && (
+                  <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mt-6 transition-colors duration-300`}>
+                    <CommentsViewer 
+                      comments={comments} 
+                      onSelectItem={(item) => {
+                        console.log('Selected item:', item);
+                      }} 
+                    />
+                  </div>
+                )}
               </div>
             )}
             
