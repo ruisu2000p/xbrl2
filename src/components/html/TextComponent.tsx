@@ -4,7 +4,7 @@ import { useDisplayMode } from '../../contexts/DisplayModeContext';
 import { sanitizeHtml, sanitizeHtmlEnhanced } from '../../utils/htmlSanitizer';
 
 interface TextComponentProps {
-  htmlContent: string;
+  htmlContent: string | null | undefined;
   className?: string;
 }
 
@@ -12,9 +12,13 @@ const TextComponent: React.FC<TextComponentProps> = ({ htmlContent, className = 
   const { isDarkMode } = useTheme();
   const { isHtmlMode } = useDisplayMode();
 
+  if (htmlContent === null || htmlContent === undefined) {
+    return <div className={`${className} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>-</div>;
+  }
+
   const processedContent = isHtmlMode 
-    ? sanitizeHtmlEnhanced(htmlContent) 
-    : sanitizeHtml(htmlContent);
+    ? sanitizeHtmlEnhanced(htmlContent || '') 
+    : sanitizeHtml(htmlContent || '');
 
   return (
     <div 

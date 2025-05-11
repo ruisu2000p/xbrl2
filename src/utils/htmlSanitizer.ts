@@ -93,6 +93,39 @@ export const formatText = (text: string): string => {
 };
 
 /**
+ * 名前空間付き要素を処理する関数
+ * cheerioのcss-selectが名前空間をサポートしていないため、代替手段で処理
+ * @param htmlContent HTML文字列
+ * @returns 処理後のHTML
+ */
+const processNamespacedElements = (htmlContent: string): string => {
+  try {
+    const $ = cheerio.load(htmlContent, { xmlMode: true });
+    
+    $('*').each(function() {
+      const el = $(this);
+      const element = this as any;
+      const tagName = element.tagName || element.name;
+      
+      if (tagName && tagName.includes(':')) {
+        const safeAttrs = ['contextRef', 'decimals', 'scale', 'format', 'name', 'unitRef'];
+        
+        Object.keys(element.attribs || {}).forEach(attr => {
+          if (!safeAttrs.includes(attr)) {
+            el.removeAttr(attr);
+          }
+        });
+      }
+    });
+    
+    return $.html();
+  } catch (error) {
+    console.error('名前空間付き要素の処理中にエラーが発生しました:', error);
+    return htmlContent;
+  }
+};
+
+/**
  * HTMLの表構造とスタイル属性を保持しながら、安全でないタグと属性を除去します
  * @param htmlContent HTML文字列またはプレーンテキスト
  * @returns 安全なHTMLタグと属性のみを含むサニタイズされたHTML
@@ -107,7 +140,8 @@ export const sanitizeHtmlEnhanced = (htmlContent: string): string => {
   }
 
   try {
-    const $ = cheerio.load(htmlContent);
+    const processedHtml = processNamespacedElements(htmlContent);
+    const $ = cheerio.load(processedHtml);
     
     $('*').each(function() {
       const el = this as any;
@@ -136,22 +170,9 @@ export const sanitizeHtmlEnhanced = (htmlContent: string): string => {
       }
     });
     
-    $('ix\\:nonfraction, [*|nonfraction]').each(function() {
-      const $el = $(this);
-      const safeAttrs = ['contextRef', 'decimals', 'scale', 'format', 'name', 'unitRef'];
-      
-      const el = this as any;
-      const attrs = el.attribs || {};
-      Object.keys(attrs).forEach(attr => {
-        if (!safeAttrs.includes(attr)) {
-          $el.removeAttr(attr);
-        }
-      });
-    });
-    
     return $.html();
   } catch (error) {
     console.warn('HTML sanitization error:', error);
-    return sanitizeHtml(htmlContent);
+    return htmlContent;
   }
 };
