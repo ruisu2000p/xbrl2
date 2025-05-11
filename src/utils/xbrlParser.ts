@@ -1,6 +1,7 @@
-import { XBRLData, StatementType, FinancialItem, FinancialValue, Context, Unit } from '../types/xbrl';
+import { XBRLData, StatementType, FinancialItem, FinancialValue, Context, Unit, InlineXBRLElement } from '../types/xbrl';
 import * as xmljs from 'xml-js';
 import { sanitizeHtml, sanitizeHtmlPreserveTables, sanitizeHtmlEnhanced, formatText } from './htmlSanitizer';
+import { processIXBRL, extractXBRLTag } from './xbrl/xbrl-helpers';
 
 /**
  * XBRLファイルを解析し、アプリケーションで使用可能な形式にデータを変換します
@@ -19,10 +20,15 @@ export const parseXBRLFile = async (file: File): Promise<XBRLData> => {
         
         // XMLをJavaScriptオブジェクトに変換
         const xmlContent = event.target.result as string;
-        const result = xmljs.xml2js(xmlContent, { compact: true });
         
-        // 解析結果からXBRLデータを構築
-        const xbrlData = processXBRLData(result);
+        let xbrlData: XBRLData;
+        if (isInlineXBRL(xmlContent)) {
+          xbrlData = processInlineXBRLData(xmlContent);
+        } else {
+          const result = xmljs.xml2js(xmlContent, { compact: true });
+          xbrlData = processXBRLData(result);
+        }
+        
         resolve(xbrlData);
       } catch (error) {
         console.error('XBRLファイルの解析中にエラーが発生しました:', error);
@@ -309,4 +315,163 @@ const extractTextContent = (element: any): string => {
   }
   
   return '';
+};
+
+/**
+ * 文字列がインラインXBRL（iXBRL）かどうかを判定します
+ * @param content XMLまたはHTML文字列
+ * @returns インラインXBRLの場合はtrue
+ */
+const isInlineXBRL = (content: string): boolean => {
+  return (
+    content.includes('xmlns:ix=') || 
+    content.includes('xmlns:ix ') || 
+    content.includes('<ix:') || 
+    content.includes('contextRef=') || 
+    content.includes('unitRef=') ||
+    content.includes('<!DOCTYPE html') // HTMLドキュメントの場合はインラインXBRLの可能性が高い
+  );
+};
+
+/**
+ * インラインXBRL（iXBRL）データを処理し、アプリケーションのデータ構造に変換します
+ * @param content インラインXBRLを含むHTML文字列
+ * @returns 処理されたXBRLデータ
+ */
+const processInlineXBRLData = (content: string): XBRLData => {
+  // 初期データ構造を作成
+  const xbrlData: XBRLData = {
+    companyInfo: {},
+    contexts: {},
+    units: {},
+    statements: {
+      [StatementType.BalanceSheet]: { type: StatementType.BalanceSheet, items: [] },
+      [StatementType.IncomeStatement]: { type: StatementType.IncomeStatement, items: [] },
+      [StatementType.CashFlow]: { type: StatementType.CashFlow, items: [] },
+      [StatementType.Other]: { type: StatementType.Other, items: [] },
+    }
+  };
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/html');
+    
+    const ixbrlElements = processIXBRL(doc);
+    
+    // コンテキスト情報を処理
+    const contexts: Record<string, Context> = {};
+    ixbrlElements.contextElements.forEach(element => {
+      const id = element.getAttribute('id');
+      if (!id) return;
+      
+      const instant = element.querySelector('xbrli\\:instant, instant');
+      const startDate = element.querySelector('xbrli\\:startDate, startDate');
+      const endDate = element.querySelector('xbrli\\:endDate, endDate');
+      
+      const context: Context = { 
+        id,
+        instant: instant ? instant.textContent?.trim() : undefined,
+        startDate: startDate ? startDate.textContent?.trim() : undefined,
+        endDate: endDate ? endDate.textContent?.trim() : undefined
+      };
+      
+      // シナリオ情報があれば抽出
+      const scenario = element.querySelector('xbrli\\:scenario, scenario');
+      if (scenario) {
+        context.scenario = scenario.textContent?.trim();
+      }
+      
+      contexts[id] = context;
+    });
+    
+    const units: Record<string, Unit> = {};
+    ixbrlElements.unitElements.forEach(element => {
+      const id = element.getAttribute('id');
+      if (!id) return;
+      
+      const measure = element.querySelector('xbrli\\:measure, measure');
+      const measureText = measure ? measure.textContent?.trim() : '';
+      
+      units[id] = {
+        id,
+        measure: measureText || ''
+      };
+    });
+    
+    const inlineElements: InlineXBRLElement[] = [];
+    
+    ixbrlElements.inlineElements.forEach(element => {
+      const xbrlInfo = extractXBRLTag(element, {
+        includeXbrlTags: true,
+        contextAware: true
+      });
+      
+      if (xbrlInfo.xbrlTag && xbrlInfo.contextRef) {
+        inlineElements.push({
+          tag: xbrlInfo.xbrlTag,
+          name: xbrlInfo.xbrlTag.includes(':') ? xbrlInfo.xbrlTag.split(':')[1] : xbrlInfo.xbrlTag,
+          value: element.textContent?.trim() || '',
+          contextRef: xbrlInfo.contextRef,
+          unitRef: xbrlInfo.unitRef,
+          decimals: xbrlInfo.decimals,
+          format: xbrlInfo.format,
+          scale: xbrlInfo.scale,
+          originalHtml: element.outerHTML
+        });
+      }
+    });
+    
+    const balanceSheetPatterns = ['Equity', 'Asset', 'Liability', 'NetAssets', 'BalanceSheet'];
+    const incomeStatementPatterns = ['OperatingIncome', 'Revenue', 'Income', 'Loss', 'Expense', 'ProfitLoss', 'IncomeStatement'];
+    const cashFlowPatterns = ['CashFlow', 'Cash'];
+    
+    inlineElements.forEach(element => {
+      // 財務項目の種類を判定
+      let statementType = StatementType.Other;
+      const itemName = element.name;
+      
+      // 項目名に基づいて財務諸表の種類を判定
+      if (balanceSheetPatterns.some(pattern => itemName.includes(pattern))) {
+        statementType = StatementType.BalanceSheet;
+      } else if (incomeStatementPatterns.some(pattern => itemName.includes(pattern))) {
+        statementType = StatementType.IncomeStatement;
+      } else if (cashFlowPatterns.some(pattern => itemName.includes(pattern))) {
+        statementType = StatementType.CashFlow;
+      }
+      
+      // 財務項目の値オブジェクトを作成
+      const financialValue: FinancialValue = {
+        value: element.value,
+        contextRef: element.contextRef,
+        unit: element.unitRef || undefined,
+        decimals: element.decimals || undefined
+      };
+      
+      // すでに同じIDの項目が存在するか確認
+      const existingItemIndex = xbrlData.statements[statementType].items.findIndex(item => item.id === element.tag);
+      
+      // 既存の項目がある場合は値を追加、なければ新しい項目を作成
+      if (existingItemIndex !== -1) {
+        xbrlData.statements[statementType].items[existingItemIndex].values.push(financialValue);
+      } else {
+        const financialItem: FinancialItem = {
+          id: element.tag,
+          name: itemName,
+          values: [financialValue]
+        };
+        
+        xbrlData.statements[statementType].items.push(financialItem);
+      }
+    });
+    
+    xbrlData.contexts = contexts;
+    xbrlData.units = units;
+    
+    (xbrlData as any).inlineXbrlElements = inlineElements;
+    
+  } catch (error) {
+    console.error('インラインXBRL処理エラー:', error instanceof Error ? error.message : String(error));
+  }
+  
+  return xbrlData;
 };
