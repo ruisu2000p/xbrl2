@@ -1,5 +1,6 @@
 import { XBRLData, StatementType, FinancialItem, FinancialValue, Context, Unit } from '../types/xbrl';
 import * as xmljs from 'xml-js';
+import { sanitizeHtml, formatText } from './htmlSanitizer';
 
 /**
  * XBRLファイルを解析し、アプリケーションで使用可能な形式にデータを変換します
@@ -280,29 +281,29 @@ const processFinancialData = (xbrlRoot: any, xbrlData: XBRLData): void => {
 };
 
 /**
- * XML要素からテキスト内容を抽出します
+ * XML要素からテキスト内容を抽出し、HTMLタグを除去します
  * @param element XML要素
- * @returns テキスト内容
+ * @returns サニタイズされたテキスト内容
  */
 const extractTextContent = (element: any): string => {
   if (!element) return '';
   
   // 要素が文字列の場合
   if (typeof element === 'string') {
-    return element;
+    return sanitizeHtml(element);
   }
   
   // 要素がオブジェクトの場合
   if (typeof element === 'object') {
     // _textプロパティがある場合
     if (element._text !== undefined) {
-      return String(element._text);
+      return sanitizeHtml(String(element._text));
     }
     
     // 配列の場合
     if (Array.isArray(element)) {
       if (element.length > 0 && element[0]._text !== undefined) {
-        return String(element[0]._text);
+        return sanitizeHtml(String(element[0]._text));
       }
     }
   }

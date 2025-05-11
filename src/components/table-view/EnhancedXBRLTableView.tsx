@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ProcessedXBRLData, HierarchicalXBRLItem } from '../../types/extractors/improved-xbrl-types';
+import { sanitizeHtml } from '../../utils/htmlSanitizer';
 import '../extractors/xbrl/style-fixes.css';
 
 interface EnhancedXBRLTableViewProps {
@@ -186,7 +187,7 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
                   
                   {/* 項目名の表示 */}
                   <span className={`${getParentStyle(item)}`}>
-                    {item.itemName}
+                    {sanitizeHtml(String(item.itemName))}
                   </span>
                 </div>
               </div>
