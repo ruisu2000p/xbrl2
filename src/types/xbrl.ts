@@ -93,3 +93,60 @@ export interface ChartData {
     borderWidth?: number;
   }[];
 }
+
+/**
+ * 注記セクションの型定義
+ */
+export interface CommentSection {
+  id: string;
+  title: string;
+  content: string;
+  relatedItems: string[];
+}
+
+/**
+ * 財務コメント情報の集約
+ */
+export interface FinancialComments {
+  comments: CommentSection[];
+}
+
+/**
+ * タクソノミ要素の型定義
+ */
+export interface TaxonomyElement {
+  id: string;
+  name: string;
+  namespace: string;
+  label?: string;
+  definition?: string;
+}
+
+/**
+ * タクソノミ参照情報
+ */
+export interface TaxonomyReference {
+  type: 'schema' | 'linkbase';
+  href: string;
+  role?: string | null;
+}
+
+/**
+ * 財務データ全体の型定義
+ * XBRLData型を拡張
+ */
+export interface FinancialData {
+  contexts: Record<string, Context>;
+  units: Record<string, Unit>;
+  financialItems: {
+    name: string;
+    namespace: string;
+    contextRef: string;
+    unitRef: string | null;
+    decimals: string | null;
+    value: string | number;
+    taxonomyElement: TaxonomyElement;
+  }[];
+  taxonomyReferences: TaxonomyReference[];
+  comments?: CommentSection[];
+}
