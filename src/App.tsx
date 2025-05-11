@@ -13,6 +13,9 @@ import { extractCommentsFromHTML } from './utils/htmlParser';
 import { extractEnhancedXBRL } from './utils/xbrl/enhanced-xbrl-extractor';
 import { sanitizeHtmlEnhanced } from './utils/htmlSanitizer';
 import CommentsViewer from './components/CommentsViewer';
+import { useDisplayMode } from './contexts/DisplayModeContext';
+import DisplayModeToggle from './components/common/DisplayModeToggle';
+import TableCellComponent from './components/html/TableCellComponent';
 
 /**
  * メインアプリケーションコンポーネント
@@ -35,6 +38,7 @@ const App: React.FC = () => {
 const AppContent: React.FC = () => {
   // テーマコンテキストからダークモード設定を取得
   const { isDarkMode, toggleDarkMode } = useTheme();
+  const { isHtmlMode } = useDisplayMode();
   
   // 現在の表示タブ（財務諸表、分析・グラフ、生データ、拡張ツール）
   const [activeTab, setActiveTab] = useState<'financial' | 'analysis' | 'raw' | 'advanced-extractor'>('financial');
@@ -451,6 +455,7 @@ const AppContent: React.FC = () => {
                     <div className="flex justify-between items-center mb-6">
                       <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>生データ</h2>
                       <div className="flex space-x-2">
+                        <DisplayModeToggle className="mr-2" />
                         <button 
                           onClick={() => {
                             if (primaryXbrlData) {
@@ -554,8 +559,12 @@ const AppContent: React.FC = () => {
                               {statement.items.map((item, idx) => (
                                 item.values.map((value, valueIdx) => (
                                   <tr key={`${idx}-${valueIdx}`} className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                                    <td className="px-4 py-2 border-b border-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtmlEnhanced(String(item.nameJa || item.name)) }}></td>
-                                    <td className="px-4 py-2 border-b border-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtmlEnhanced(String(value.value)) }}></td>
+                                    <td className="px-4 py-2 border-b border-gray-700">
+                                      <TableCellComponent content={item.nameJa || item.name} />
+                                    </td>
+                                    <td className="px-4 py-2 border-b border-gray-700">
+                                      <TableCellComponent content={value.value} />
+                                    </td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.unit || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.period || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{item.name || '-'}</td>
