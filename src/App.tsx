@@ -326,6 +326,7 @@ const AppContent: React.FC = () => {
                 isDarkMode={isDarkMode}
                 useEnhancedMode={useEnhancedMode}
                 onToggleEnhancedMode={toggleEnhancedMode}
+                language={language}
               />
               
               {/* リセットボタン */}
