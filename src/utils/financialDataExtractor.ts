@@ -5,7 +5,7 @@
 
 import { parseXBRLFile } from './xbrlParser';
 import { extractCommentsFromHTML } from './htmlParser';
-import { sanitizeHtml, sanitizeHtmlPreserveTables } from './htmlSanitizer';
+import { sanitizeHtml, sanitizeHtmlPreserveTables, sanitizeHtmlEnhanced } from './htmlSanitizer';
 import { XBRLData, CommentSection, FinancialData, TaxonomyReference, StatementType } from '../types/xbrl';
 
 /**
@@ -77,16 +77,16 @@ const extractFinancialItems = (xbrlData: XBRLData) => {
 };
 
 /**
- * File オブジェクトをテキストとして読み込み、テーブル構造を保持しながらHTMLタグを処理する
+ * File オブジェクトをテキストとして読み込み、テーブル構造とスタイルを保持しながらHTMLタグを処理する
  * @param file 読み込むファイル
- * @returns サニタイズされたテキスト内容のPromise（テーブル構造を保持）
+ * @returns サニタイズされたテキスト内容のPromise（テーブル構造とスタイルを保持）
  */
 const readFileAsText = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target && typeof e.target.result === 'string') {
-        resolve(sanitizeHtmlPreserveTables(e.target.result));
+        resolve(sanitizeHtmlEnhanced(e.target.result));
       } else {
         reject(new Error('ファイル読み込みに失敗しました'));
       }
