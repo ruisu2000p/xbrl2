@@ -416,8 +416,10 @@ export const processUnits = (elements: Element[]) => {
     }
     
     // 単位の表示用ラベルを設定
-    const displayLabel = getUnitDisplayLabel(units[id]);
-    units[id].displayLabel = displayLabel;
+    if (units[id]) {
+      const displayLabel = getUnitDisplayLabel(units[id]);
+      units[id].displayLabel = displayLabel;
+    }
   });
   
   return units;

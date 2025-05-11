@@ -4,7 +4,7 @@ import { useDisplayMode } from '../../contexts/DisplayModeContext';
 import { sanitizeHtml, sanitizeHtmlEnhanced } from '../../utils/htmlSanitizer';
 
 interface TableCellComponentProps {
-  content: string | number | null;
+  content: string | number | null | undefined;
   className?: string;
   isHtml?: boolean;
 }
@@ -17,20 +17,24 @@ const TableCellComponent: React.FC<TableCellComponentProps> = ({
   const { isDarkMode } = useTheme();
   const { isHtmlMode } = useDisplayMode();
 
-  if (typeof content === 'number' || content === null) {
-    return <span className={className}>{content === null ? '-' : content}</span>;
+  if (content === null || content === undefined) {
+    return <span className={`${className} ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>-</span>;
+  }
+  
+  if (typeof content === 'number') {
+    return <span className={`${className} ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{content}</span>;
   }
 
   const processedContent = isHtml && isHtmlMode 
-    ? sanitizeHtmlEnhanced(String(content)) 
-    : sanitizeHtml(String(content));
+    ? sanitizeHtmlEnhanced(String(content || '')) 
+    : sanitizeHtml(String(content || ''));
 
   return (
     <span className={`${className} ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
       {isHtml && isHtmlMode ? (
         <span dangerouslySetInnerHTML={{ __html: processedContent }} />
       ) : (
-        <span>{processedContent}</span>
+        <span className="whitespace-pre-line">{processedContent}</span>
       )}
     </span>
   );

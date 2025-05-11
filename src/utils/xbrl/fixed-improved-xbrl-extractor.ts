@@ -403,7 +403,7 @@ function processXBRLUnits(doc: Document): Record<string, XBRLUnitInfo> {
       measure: measureText || '',
       symbol: unitSymbol,
       name: unitName,
-      displayLabel: unitSymbol,
+      displayLabel: unitSymbol || '',
       type: divideEl ? 'fraction' : 'simple' // type プロパティを追加
     };
   });
@@ -449,7 +449,7 @@ function processXBRLUnits(doc: Document): Record<string, XBRLUnitInfo> {
       measure: '',
       symbol,
       name,
-      displayLabel: symbol,
+      displayLabel: symbol || '',
       type: 'simple' // type プロパティを追加
     };
   });
