@@ -467,7 +467,7 @@ const AppContent: React.FC = () => {
                               Object.values(primaryXbrlData.statements).forEach(statement => {
                                 statement.items.forEach(item => {
                                   item.values.forEach(value => {
-                                    csvContent += `"${item.nameJa || item.name}",${value.value},"${value.unit || ''}","${value.period || ''}","${item.taxonomyElement || ''}"\n`;
+                                    csvContent += `"${item.nameJa || item.name}",${value.value},"${value.unit || ''}","${value.period || ''}","${item.name}"\n`;
                                   });
                                 });
                               });
@@ -509,7 +509,7 @@ const AppContent: React.FC = () => {
                             <span className="font-medium">証券コード:</span> {primaryXbrlData.companyInfo.ticker || '不明'}
                           </p>
                           <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                            <span className="font-medium">通貨単位:</span> {primaryXbrlData.companyInfo.currency || '円'}
+                            <span className="font-medium">通貨単位:</span> {'円'}
                           </p>
                         </div>
                       </div>
@@ -543,7 +543,7 @@ const AppContent: React.FC = () => {
                                     <td className="px-4 py-2 border-b border-gray-700">{value.value}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.unit || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.period || '-'}</td>
-                                    <td className="px-4 py-2 border-b border-gray-700">{item.taxonomyElement || '-'}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{item.name || '-'}</td>
                                   </tr>
                                 ))
                               ))}
