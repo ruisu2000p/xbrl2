@@ -4,6 +4,8 @@
  */
 import * as cheerio from 'cheerio';
 
+const ALLOWED_TAGS = ['table', 'thead', 'tbody', 'tr', 'th', 'td', 'p', 'br', 'span', 'div', 'ul', 'ol', 'li'];
+
 /**
  * HTMLタグを除去し、テキストのみを抽出します
  * @param htmlContent HTML文字列またはプレーンテキスト
@@ -25,6 +27,45 @@ export const sanitizeHtml = (htmlContent: string): string => {
   }
 
   return htmlContent;
+};
+
+/**
+ * HTMLの表構造を保持しながら、安全でないタグを除去します
+ * @param htmlContent HTML文字列またはプレーンテキスト
+ * @returns 安全なHTMLタグのみを含むサニタイズされたHTML
+ */
+export const sanitizeHtmlPreserveTables = (htmlContent: string): string => {
+  if (!htmlContent || typeof htmlContent !== 'string') {
+    return '';
+  }
+
+  if (!/<[a-z][\s\S]*>/i.test(htmlContent)) {
+    return htmlContent;
+  }
+
+  try {
+    let sanitized = htmlContent;
+    
+    const tagRegex = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
+    
+    sanitized = sanitized.replace(tagRegex, (match, tagName) => {
+      if (ALLOWED_TAGS.includes(tagName.toLowerCase())) {
+        const closingBracketPos = match.indexOf('>');
+        const openingTagWithoutAttrs = match.startsWith('</') 
+          ? match // 閉じタグはそのまま保持
+          : `<${tagName}>`; // 開始タグは属性を削除
+        
+        return openingTagWithoutAttrs;
+      } else {
+        return '';
+      }
+    });
+    
+    return sanitized;
+  } catch (error) {
+    console.warn('HTML sanitization error:', error);
+    return sanitizeHtml(htmlContent); // エラーが発生した場合はテキストのみを抽出
+  }
 };
 
 /**
