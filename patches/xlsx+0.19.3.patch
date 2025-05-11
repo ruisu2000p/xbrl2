@@ -1,0 +1,15 @@
+diff --git a/node_modules/xlsx/xlsx.mjs b/node_modules/xlsx/xlsx.mjs
+index 36f1879..0c00dc2 100644
+--- a/node_modules/xlsx/xlsx.mjs
++++ b/node_modules/xlsx/xlsx.mjs
+@@ -174,7 +174,7 @@ function encode_utf8(s) {
+ 	return s.replace(/[\u0080-\uFFFF]/g, function(x) { return String.fromCharCode(0xc0 | ((x.charCodeAt(0)>>6)&0x1f), 0x80 | (x.charCodeAt(0)&0x3f)); });
+ }
+
+-var process_p = (typeof process !== 'undefined');
++var process_p = (typeof window !== 'undefined' && typeof window.process !== 'undefined');
+ let fs;
+-if(typeof require !== 'undefined') try { fs = require('process/browser'); } catch(e) { fs = require('fs'); }
++if(typeof require !== 'undefined') try { fs = {}; } catch(e) { console.error('process/browser error:', e); }
+
+ function read_utf8(data) {

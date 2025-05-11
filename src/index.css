@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* ダークモードのためのアニメーション */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* XBRL表示のためのカスタムスタイル */
+.indented-1 { padding-left: 1rem; }
+.indented-2 { padding-left: 2rem; }
+.indented-3 { padding-left: 3rem; }
+.indented-4 { padding-left: 4rem; }
+.indented-5 { padding-left: 5rem; }
+
+/* テーブル内のXBRLタグスタイル */
+.xbrl-tag {
+  font-size: 0.75rem;
+  color: theme('colors.blue.600');
+}
+.dark .xbrl-tag {
+  color: theme('colors.blue.400');
+}

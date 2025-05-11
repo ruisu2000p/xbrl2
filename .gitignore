@@ -1,0 +1,20 @@
+# 依存関係ファイル
+node_modules
+*/node_modules
+.cache
+*/.cache
+# ビルド出力
+/build
+/dist
+node_modules
+*/node_modules
+.cache
+*/.cache
+/build
+/dist
+node_modules
+*/node_modules
+.cache
+*/.cache
+/build
+/dist
