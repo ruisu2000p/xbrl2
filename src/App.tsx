@@ -14,6 +14,7 @@ import { parseXBRLFile } from './utils/xbrlParser';
 import { extractCommentsFromHTML } from './utils/htmlParser';
 import { extractFinancialData } from './utils/financialDataExtractor';
 import { extractEnhancedXBRL } from './utils/xbrl/enhanced-xbrl-extractor';
+import { sanitizeHtml } from './utils/htmlSanitizer';
 import CommentsViewer from './components/CommentsViewer';
 
 /**
@@ -554,8 +555,8 @@ const AppContent: React.FC = () => {
                               {statement.items.map((item, idx) => (
                                 item.values.map((value, valueIdx) => (
                                   <tr key={`${idx}-${valueIdx}`} className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                                    <td className="px-4 py-2 border-b border-gray-700">{item.nameJa || item.name}</td>
-                                    <td className="px-4 py-2 border-b border-gray-700">{value.value}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{sanitizeHtml(String(item.nameJa || item.name))}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{sanitizeHtml(String(value.value))}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.unit || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.period || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{item.name || '-'}</td>

@@ -5,6 +5,7 @@
 
 import { parseXBRLFile } from './xbrlParser';
 import { extractCommentsFromHTML } from './htmlParser';
+import { sanitizeHtml } from './htmlSanitizer';
 import { XBRLData, CommentSection, FinancialData, TaxonomyReference, StatementType } from '../types/xbrl';
 
 /**
@@ -76,16 +77,16 @@ const extractFinancialItems = (xbrlData: XBRLData) => {
 };
 
 /**
- * File オブジェクトをテキストとして読み込む
+ * File オブジェクトをテキストとして読み込み、HTMLタグを処理する
  * @param file 読み込むファイル
- * @returns テキスト内容のPromise
+ * @returns サニタイズされたテキスト内容のPromise
  */
 const readFileAsText = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target && typeof e.target.result === 'string') {
-        resolve(e.target.result);
+        resolve(sanitizeHtml(e.target.result));
       } else {
         reject(new Error('ファイル読み込みに失敗しました'));
       }
