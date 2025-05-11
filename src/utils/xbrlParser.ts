@@ -1,6 +1,6 @@
 import { XBRLData, StatementType, FinancialItem, FinancialValue, Context, Unit } from '../types/xbrl';
 import * as xmljs from 'xml-js';
-import { sanitizeHtml, sanitizeHtmlPreserveTables, formatText } from './htmlSanitizer';
+import { sanitizeHtml, sanitizeHtmlPreserveTables, sanitizeHtmlEnhanced, formatText } from './htmlSanitizer';
 
 /**
  * XBRLファイルを解析し、アプリケーションで使用可能な形式にデータを変換します
@@ -281,29 +281,29 @@ const processFinancialData = (xbrlRoot: any, xbrlData: XBRLData): void => {
 };
 
 /**
- * XML要素からテキスト内容を抽出し、テーブル構造を保持しながらHTMLをサニタイズします
+ * XML要素からテキスト内容を抽出し、テーブル構造とスタイルを保持しながらHTMLをサニタイズします
  * @param element XML要素
- * @returns サニタイズされたテキスト内容（テーブル構造を保持）
+ * @returns サニタイズされたテキスト内容（テーブル構造とスタイルを保持）
  */
 const extractTextContent = (element: any): string => {
   if (!element) return '';
   
   // 要素が文字列の場合
   if (typeof element === 'string') {
-    return sanitizeHtmlPreserveTables(element);
+    return sanitizeHtmlEnhanced(element);
   }
   
   // 要素がオブジェクトの場合
   if (typeof element === 'object') {
     // _textプロパティがある場合
     if (element._text !== undefined) {
-      return sanitizeHtmlPreserveTables(String(element._text));
+      return sanitizeHtmlEnhanced(String(element._text));
     }
     
     // 配列の場合
     if (Array.isArray(element)) {
       if (element.length > 0 && element[0]._text !== undefined) {
-        return sanitizeHtmlPreserveTables(String(element[0]._text));
+        return sanitizeHtmlEnhanced(String(element[0]._text));
       }
     }
   }
