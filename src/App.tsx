@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
+import { DisplayModeProvider } from './contexts/DisplayModeContext';
 import XBRLUploader from './components/XBRLUploader';
 import XBRLViewer from './components/XBRLViewer';
 import FinancialDashboard from './components/FinancialDashboard';
@@ -15,12 +16,14 @@ import CommentsViewer from './components/CommentsViewer';
 
 /**
  * メインアプリケーションコンポーネント
- * ThemeProviderでラップし、全体のダークモード状態管理を提供します
+ * ThemeProviderとDisplayModeProviderでラップし、全体のダークモードとHTML/テキスト表示モードの状態管理を提供します
  */
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <AppContent />
+      <DisplayModeProvider>
+        <AppContent />
+      </DisplayModeProvider>
     </ThemeProvider>
   );
 };

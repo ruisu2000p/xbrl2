@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { CommentSection } from '../types/xbrl';
 import { useTheme } from '../contexts/ThemeContext';
-import { sanitizeHtmlEnhanced } from '../utils/htmlSanitizer';
+import { useDisplayMode } from '../contexts/DisplayModeContext';
+import TextComponent from './html/TextComponent';
+import DisplayModeToggle from './common/DisplayModeToggle';
 
 interface CommentsViewerProps {
   comments: CommentSection[];
@@ -27,9 +29,12 @@ const CommentsViewer: React.FC<CommentsViewerProps> = ({ comments, onSelectItem 
 
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 text-gray-200' : 'bg-white text-gray-800'} rounded-lg shadow-md transition-colors duration-300`}>
-      <h2 className={`text-xl font-semibold p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-        注記・コメント情報
-      </h2>
+      <div className="flex justify-between items-center p-4 border-b border-gray-200">
+        <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+          注記・コメント情報
+        </h2>
+        <DisplayModeToggle />
+      </div>
 
       {comments.length === 0 ? (
         <div className="p-6 text-center">
@@ -64,9 +69,9 @@ const CommentsViewer: React.FC<CommentsViewerProps> = ({ comments, onSelectItem 
                 key={comment.id} 
                 className={`${activeTab === comment.id ? 'block' : 'hidden'}`}
               >
-                <div 
+                <TextComponent
+                  htmlContent={comment.content}
                   className={`whitespace-pre-line text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}
-                  dangerouslySetInnerHTML={{ __html: sanitizeHtmlEnhanced(comment.content) }}
                 />
                 
                 {comment.relatedItems.length > 0 && (

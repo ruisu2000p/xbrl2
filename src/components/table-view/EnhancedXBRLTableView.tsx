@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ProcessedXBRLData, HierarchicalXBRLItem } from '../../types/extractors/improved-xbrl-types';
-import { sanitizeHtmlEnhanced } from '../../utils/htmlSanitizer';
+import { useDisplayMode } from '../../contexts/DisplayModeContext';
+import DisplayModeToggle from '../../components/common/DisplayModeToggle';
+import TextComponent from '../../components/html/TextComponent';
+import TableCellComponent from '../../components/html/TableCellComponent';
 import '../extractors/xbrl/style-fixes.css';
 
 interface EnhancedXBRLTableViewProps {
@@ -20,6 +23,7 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
   const [showXBRLTags, setShowXBRLTags] = useState(false);
   const [showContextInfo, setShowContextInfo] = useState(false);
   const [showCalculations, setShowCalculations] = useState(true);
+  const { isHtmlMode } = useDisplayMode();
   
   const labels = {
     item: language === 'ja' ? '項目' : 'Item',
@@ -123,11 +127,7 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
       : 'font-medium text-gray-800';
   };
   
-  // 数値表示用のフォーマット
-  const formatNumber = (num: number | null) => {
-    if (num === null || isNaN(Number(num))) return '-';
-    return new Intl.NumberFormat('ja-JP').format(num);
-  };
+  // 数値表示用のフォーマット - TableCellComponentで代替
   
   // 値の変化に応じた色を取得
   const getChangeColor = (value: number | null) => {
@@ -186,10 +186,12 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
                   )}
                   
                   {/* 項目名の表示 */}
-                  <span 
-                    className={`${getParentStyle(item)}`}
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtmlEnhanced(String(item.itemName)) }}
-                  ></span>
+                  <span className={`${getParentStyle(item)}`}>
+                    <TextComponent 
+                      htmlContent={String(item.itemName)} 
+                      className="inline"
+                    />
+                  </span>
                 </div>
               </div>
               
@@ -210,7 +212,11 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
             
             {/* 前期の値 */}
             <td className={`px-4 py-2 text-right whitespace-nowrap border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${item.isTotal ? (isDarkMode ? 'font-semibold text-yellow-300' : 'font-semibold') : ''}`}>
-              {formatNumber(item.previousPeriod)}
+              <TableCellComponent 
+                content={item.previousPeriod} 
+                isHtml={false}
+                className="text-right"
+              />
               {item.unitLabel && item.unitLabel !== unitDisplay && (
                 <span className="ml-1 text-xs text-gray-500">{item.unitLabel}</span>
               )}
@@ -218,7 +224,11 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
             
             {/* 当期の値 */}
             <td className={`px-4 py-2 text-right whitespace-nowrap border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${item.isTotal ? (isDarkMode ? 'font-semibold text-yellow-300' : 'font-semibold') : ''}`}>
-              {formatNumber(item.currentPeriod)}
+              <TableCellComponent 
+                content={item.currentPeriod} 
+                isHtml={false}
+                className="text-right"
+              />
               {item.unitLabel && item.unitLabel !== unitDisplay && (
                 <span className="ml-1 text-xs text-gray-500">{item.unitLabel}</span>
               )}
@@ -226,7 +236,11 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
             
             {/* 増減 */}
             <td className={`px-4 py-2 text-right whitespace-nowrap border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${getChangeColor(item.change || null)}`}>
-              {item.change !== undefined && item.change !== null ? formatNumber(item.change) : '-'}
+              <TableCellComponent 
+                content={item.change !== undefined && item.change !== null ? item.change : null} 
+                isHtml={false}
+                className="text-right"
+              />
               {item.unitLabel && item.unitLabel !== unitDisplay && item.change !== undefined && item.change !== null && (
                 <span className="ml-1 text-xs text-gray-500">{item.unitLabel}</span>
               )}
@@ -234,9 +248,13 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
             
             {/* 増減率 */}
             <td className={`px-4 py-2 text-right whitespace-nowrap border ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} ${getChangeColor(item.change || null)}`}>
-              {item.changeRate !== undefined && item.changeRate !== null
-                ? `${item.changeRate.toFixed(1)}%`
-                : '-'}
+              <TableCellComponent  
+                content={item.changeRate !== undefined && item.changeRate !== null
+                  ? `${item.changeRate.toFixed(1)}%`
+                  : null} 
+                isHtml={false}
+                className="text-right"
+              />
             </td>
           </tr>
           
@@ -268,6 +286,7 @@ const EnhancedXBRLTableView: React.FC<EnhancedXBRLTableViewProps> = ({ data, isD
           </div>
           
           <div className="flex flex-wrap gap-2">
+            <DisplayModeToggle className="mr-2" />
             <button
               className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
               onClick={() => toggleAllItems(true)}
