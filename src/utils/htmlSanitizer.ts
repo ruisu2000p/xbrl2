@@ -4,7 +4,16 @@
  */
 import * as cheerio from 'cheerio';
 
-const ALLOWED_TAGS = ['table', 'thead', 'tbody', 'tr', 'th', 'td', 'p', 'br', 'span', 'div', 'ul', 'ol', 'li'];
+const ALLOWED_TAGS = ['table', 'thead', 'tbody', 'tr', 'th', 'td', 'p', 'br', 'span', 'div', 'ul', 'ol', 'li', 'ix:nonfraction', 'ix:nonnumeric'];
+
+const SAFE_STYLE_PROPS = [
+  'vertical-align', 'text-align', 
+  'background-color', 
+  'border-top-color', 'border-bottom-color', 'border-left-color', 'border-right-color',
+  'border-top-style', 'border-bottom-style', 'border-left-style', 'border-right-style',
+  'border-top-width', 'border-bottom-width', 'border-left-width', 'border-right-width',
+  'padding-left', 'padding-right', 'padding-top', 'padding-bottom'
+];
 
 /**
  * HTMLタグを除去し、テキストのみを抽出します
@@ -50,7 +59,6 @@ export const sanitizeHtmlPreserveTables = (htmlContent: string): string => {
     
     sanitized = sanitized.replace(tagRegex, (match, tagName) => {
       if (ALLOWED_TAGS.includes(tagName.toLowerCase())) {
-        const closingBracketPos = match.indexOf('>');
         const openingTagWithoutAttrs = match.startsWith('</') 
           ? match // 閉じタグはそのまま保持
           : `<${tagName}>`; // 開始タグは属性を削除
@@ -82,4 +90,68 @@ export const formatText = (text: string): string => {
   formatted = formatted.trim();
 
   return formatted;
+};
+
+/**
+ * HTMLの表構造とスタイル属性を保持しながら、安全でないタグと属性を除去します
+ * @param htmlContent HTML文字列またはプレーンテキスト
+ * @returns 安全なHTMLタグと属性のみを含むサニタイズされたHTML
+ */
+export const sanitizeHtmlEnhanced = (htmlContent: string): string => {
+  if (!htmlContent || typeof htmlContent !== 'string') {
+    return '';
+  }
+
+  if (!/<[a-z][\s\S]*>/i.test(htmlContent)) {
+    return htmlContent;
+  }
+
+  try {
+    const $ = cheerio.load(htmlContent);
+    
+    $('*').each(function() {
+      const el = this as any;
+      const tagName = (el.tagName || el.name || '').toLowerCase();
+      if (tagName && !ALLOWED_TAGS.includes(tagName)) {
+        $(this).replaceWith($(this).text());
+      }
+    });
+    
+    $('[style]').each(function() {
+      const style = $(this).attr('style');
+      if (style) {
+        const safeStyles = style.split(';')
+          .filter(part => {
+            const [prop] = part.split(':').map(s => s.trim());
+            return prop && SAFE_STYLE_PROPS.some(safeProp => 
+              prop.toLowerCase() === safeProp.toLowerCase());
+          })
+          .join(';');
+        
+        if (safeStyles) {
+          $(this).attr('style', safeStyles);
+        } else {
+          $(this).removeAttr('style');
+        }
+      }
+    });
+    
+    $('ix\\:nonfraction, [*|nonfraction]').each(function() {
+      const $el = $(this);
+      const safeAttrs = ['contextRef', 'decimals', 'scale', 'format', 'name', 'unitRef'];
+      
+      const el = this as any;
+      const attrs = el.attribs || {};
+      Object.keys(attrs).forEach(attr => {
+        if (!safeAttrs.includes(attr)) {
+          $el.removeAttr(attr);
+        }
+      });
+    });
+    
+    return $.html();
+  } catch (error) {
+    console.warn('HTML sanitization error:', error);
+    return sanitizeHtml(htmlContent);
+  }
 };

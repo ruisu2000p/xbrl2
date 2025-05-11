@@ -3,18 +3,14 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import XBRLUploader from './components/XBRLUploader';
 import XBRLViewer from './components/XBRLViewer';
 import FinancialDashboard from './components/FinancialDashboard';
-import FinancialAnalysisDetails from './components/FinancialAnalysisDetails';
-import CompanyComparison from './components/CompanyComparison';
-import ImprovedXBRLTableExtractor from './components/extractors/xbrl/ImprovedXBRLTableExtractor';
 import EnhancedXBRLTableExtractor from './components/extractors/xbrl/EnhancedXBRLTableExtractor';
 import EnhancedXBRLTableView from './components/table-view/EnhancedXBRLTableView';
 import { XBRLData, CommentSection } from './types/xbrl';
-import { ProcessedXBRLData, XBRLExtractionOptions } from './types/extractors/improved-xbrl-types';
+import { ProcessedXBRLData } from './types/extractors/improved-xbrl-types';
 import { parseXBRLFile } from './utils/xbrlParser';
 import { extractCommentsFromHTML } from './utils/htmlParser';
-import { extractFinancialData } from './utils/financialDataExtractor';
 import { extractEnhancedXBRL } from './utils/xbrl/enhanced-xbrl-extractor';
-import { sanitizeHtml, sanitizeHtmlPreserveTables } from './utils/htmlSanitizer';
+import { sanitizeHtmlEnhanced } from './utils/htmlSanitizer';
 import CommentsViewer from './components/CommentsViewer';
 
 /**
@@ -555,8 +551,8 @@ const AppContent: React.FC = () => {
                               {statement.items.map((item, idx) => (
                                 item.values.map((value, valueIdx) => (
                                   <tr key={`${idx}-${valueIdx}`} className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                                    <td className="px-4 py-2 border-b border-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtmlPreserveTables(String(item.nameJa || item.name)) }}></td>
-                                    <td className="px-4 py-2 border-b border-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtmlPreserveTables(String(value.value)) }}></td>
+                                    <td className="px-4 py-2 border-b border-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtmlEnhanced(String(item.nameJa || item.name)) }}></td>
+                                    <td className="px-4 py-2 border-b border-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeHtmlEnhanced(String(value.value)) }}></td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.unit || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{value.period || '-'}</td>
                                     <td className="px-4 py-2 border-b border-gray-700">{item.name || '-'}</td>
