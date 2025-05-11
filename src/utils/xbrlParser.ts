@@ -323,7 +323,7 @@ const extractTextContent = (element: any): string => {
  * @returns インラインXBRLの場合はtrue
  */
 const isInlineXBRL = (content: string): boolean => {
-  return (
+  const result = (
     content.includes('xmlns:ix=') || 
     content.includes('xmlns:ix ') || 
     content.includes('<ix:') || 
@@ -331,6 +331,8 @@ const isInlineXBRL = (content: string): boolean => {
     content.includes('unitRef=') ||
     content.includes('<!DOCTYPE html') // HTMLドキュメントの場合はインラインXBRLの可能性が高い
   );
+  console.log('インラインXBRL判定:', result, '最初の100文字:', content.substring(0, 100));
+  return result;
 };
 
 /**
@@ -355,8 +357,14 @@ const processInlineXBRLData = (content: string): XBRLData => {
   try {
     const parser = new DOMParser();
     const doc = parser.parseFromString(content, 'text/html');
+    console.log('DOMParser結果:', doc.documentElement.outerHTML.substring(0, 200));
     
     const ixbrlElements = processIXBRL(doc);
+    console.log('インラインXBRL要素抽出結果:', {
+      contextElements: ixbrlElements.contextElements.length,
+      unitElements: ixbrlElements.unitElements.length,
+      inlineElements: ixbrlElements.inlineElements.length
+    });
     
     // コンテキスト情報を処理
     const contexts: Record<string, Context> = {};
@@ -468,6 +476,7 @@ const processInlineXBRLData = (content: string): XBRLData => {
     xbrlData.units = units;
     
     (xbrlData as any).inlineXbrlElements = inlineElements;
+    console.log('抽出されたインラインXBRL要素数:', inlineElements.length);
     
   } catch (error) {
     console.error('インラインXBRL処理エラー:', error instanceof Error ? error.message : String(error));

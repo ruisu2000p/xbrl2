@@ -14,6 +14,8 @@ interface SimpleRawDataViewProps {
 const SimpleRawDataView: React.FC<SimpleRawDataViewProps> = ({ statements, isDarkMode, inlineXbrlElements }) => {
   const { isHtmlMode } = useDisplayMode();
   const [showInlineXbrl, setShowInlineXbrl] = useState(false);
+  
+  console.log('SimpleRawDataView received inlineXbrlElements:', inlineXbrlElements);
   const statementLabels: Record<string, string> = {
     'BalanceSheet': '貸借対照表',
     'IncomeStatement': '損益計算書',
