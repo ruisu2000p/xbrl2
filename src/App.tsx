@@ -36,8 +36,8 @@ const AppContent: React.FC = () => {
   // テーマコンテキストからダークモード設定を取得
   const { isDarkMode, toggleDarkMode } = useTheme();
   
-  // 現在の表示タブ（基本分析、詳細分析、企業比較）
-  const [activeTab, setActiveTab] = useState<'basic' | 'detailed' | 'comparison' | 'advanced-extractor'>('basic');
+  // 現在の表示タブ（財務諸表、分析・グラフ、生データ、拡張ツール）
+  const [activeTab, setActiveTab] = useState<'financial' | 'analysis' | 'raw' | 'advanced-extractor'>('financial');
   
   // 主要企業のXBRLデータ
   const [primaryXbrlData, setPrimaryXbrlData] = useState<XBRLData | null>(null);
@@ -146,8 +146,7 @@ const AppContent: React.FC = () => {
         // 既存の比較企業リストに追加
         setSecondaryXbrlDataList(prevList => [...prevList, parsedData]);
         setSecondaryCompanyNames(prevNames => [...prevNames, extractedCompanyName]);
-        // 比較タブに切り替え
-        setActiveTab('comparison');
+        setActiveTab('financial');
       }
 
     } catch (err) {
@@ -169,7 +168,7 @@ const AppContent: React.FC = () => {
     setProcessedXbrlData(null);
     setComments([]);
     setError(null);
-    setActiveTab('basic');
+    setActiveTab('financial');
   };
   
   /**
@@ -225,10 +224,10 @@ const AppContent: React.FC = () => {
         <div className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} mb-8 transition-colors duration-300`}>
           <nav className="-mb-px flex space-x-8">
             <button
-              onClick={() => setActiveTab('basic')}
+              onClick={() => setActiveTab('financial')}
               className={`
                 pb-4 px-1 border-b-2 font-medium text-sm
-                ${activeTab === 'basic'
+                ${activeTab === 'financial'
                   ? isDarkMode 
                     ? 'border-blue-500 text-blue-400' 
                     : 'border-primary-500 text-primary-600'
@@ -237,13 +236,13 @@ const AppContent: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
               `}
             >
-              基本分析
+              財務諸表
             </button>
             <button
-              onClick={() => setActiveTab('detailed')}
+              onClick={() => setActiveTab('analysis')}
               className={`
                 pb-4 px-1 border-b-2 font-medium text-sm
-                ${activeTab === 'detailed'
+                ${activeTab === 'analysis'
                   ? isDarkMode 
                     ? 'border-blue-500 text-blue-400' 
                     : 'border-primary-500 text-primary-600'
@@ -252,13 +251,13 @@ const AppContent: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
               `}
             >
-              詳細分析
+              分析・グラフ
             </button>
             <button
-              onClick={() => setActiveTab('comparison')}
+              onClick={() => setActiveTab('raw')}
               className={`
                 pb-4 px-1 border-b-2 font-medium text-sm
-                ${activeTab === 'comparison'
+                ${activeTab === 'raw'
                   ? isDarkMode 
                     ? 'border-blue-500 text-blue-400' 
                     : 'border-primary-500 text-primary-600'
@@ -267,14 +266,7 @@ const AppContent: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
               `}
             >
-              企業比較
-              {secondaryXbrlDataList.length > 0 && (
-                <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-primary-100 text-primary-800'
-                }`}>
-                  {secondaryXbrlDataList.length}
-                </span>
-              )}
+              生データ
             </button>
             <button
               onClick={() => setActiveTab('advanced-extractor')}
@@ -289,7 +281,14 @@ const AppContent: React.FC = () => {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
               `}
             >
-              拡張版XBRL抽出ツール
+              拡張ツール
+              {processedXbrlData && (
+                <span className={`ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-primary-100 text-primary-800'
+                }`}>
+                  処理済
+                </span>
+              )}
             </button>
           </nav>
         </div>
@@ -380,63 +379,184 @@ const AppContent: React.FC = () => {
                   )}
                 </div>
                 
-                {/* タブコンテンツ */}
-                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mb-8 transition-colors duration-300`}>
-                  {activeTab === 'basic' && (
-                    <FinancialDashboard xbrlData={primaryXbrlData} />
-                  )}
-                  
-                  {activeTab === 'detailed' && (
-                    <FinancialAnalysisDetails xbrlData={primaryXbrlData} />
-                  )}
-                  
-                  {activeTab === 'comparison' && (
-                    secondaryXbrlDataList.length > 0 ? (
-                      <CompanyComparison 
-                        primaryCompanyData={primaryXbrlData}
-                        secondaryCompaniesData={secondaryXbrlDataList}
-                        secondaryCompanyNames={secondaryCompanyNames}
-                      />
+                {/* タブコンテンツ - 財務諸表 */}
+                {activeTab === 'financial' && (
+                  <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mb-8 transition-colors duration-300`}>
+                    <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>財務諸表</h2>
+                    {useEnhancedMode && processedXbrlData ? (
+                      <div>
+                        <div className="text-sm mb-4">
+                          <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
+                            <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>レポートタイプ: </span>
+                            <span>{processedXbrlData.hierarchical.metadata.reportType}</span>
+                          </div>
+                          <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
+                            <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>単位: </span>
+                            <span>{processedXbrlData.hierarchical.metadata.unit}</span>
+                          </div>
+                          <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
+                            <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>期間: </span>
+                            <span>{processedXbrlData.hierarchical.metadata.periods.current}</span>
+                          </div>
+                        </div>
+                        <EnhancedXBRLTableView 
+                          data={processedXbrlData}
+                          isDarkMode={isDarkMode}
+                        />
+                      </div>
                     ) : (
-                      <div className={`${isDarkMode ? 'bg-blue-900 border-blue-800 text-blue-200' : 'bg-blue-50 border-blue-400 text-blue-700'} p-4 rounded border transition-colors duration-300`}>
-                        <p className="font-medium">比較企業を追加してください</p>
-                        <p className="mt-2">企業を比較するには、別のXBRLファイルをアップロードしてください。アップロードすると自動的に比較対象として追加されます。</p>
-                      </div>
-                    )
-                  )}
-                </div>
+                      <XBRLViewer xbrlData={primaryXbrlData} />
+                    )}
+                  </div>
+                )}
                 
-                {/* XBRLデータビューアー */}
-                <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md transition-colors duration-300`}>
-                  <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>XBRLデータビューアー</h2>
-                  {useEnhancedMode && processedXbrlData ? (
-                    <div>
-                      <div className="text-sm mb-4">
-                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
-                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>レポートタイプ: </span>
-                          <span>{processedXbrlData.hierarchical.metadata.reportType}</span>
-                        </div>
-                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded mb-2`}>
-                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>単位: </span>
-                          <span>{processedXbrlData.hierarchical.metadata.unit}</span>
-                        </div>
-                        <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-3 rounded`}>
-                          <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>期間: </span>
-                          <span>{processedXbrlData.hierarchical.metadata.periods.current}</span>
-                        </div>
+                {/* タブコンテンツ - 分析・グラフ */}
+                {activeTab === 'analysis' && (
+                  <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mb-8 transition-colors duration-300`}>
+                    <h2 className={`text-xl font-semibold mb-4 ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>財務分析・グラフ</h2>
+                    <FinancialDashboard xbrlData={primaryXbrlData} />
+                    
+                    {/* 注記情報表示 */}
+                    {comments.length > 0 && (
+                      <div className="mt-8">
+                        <CommentsViewer 
+                          comments={comments} 
+                          onSelectItem={(item) => {
+                            console.log('Selected item:', item);
+                          }} 
+                        />
                       </div>
-                      <EnhancedXBRLTableView 
-                        data={processedXbrlData}
-                        isDarkMode={isDarkMode}
-                      />
+                    )}
+                  </div>
+                )}
+                
+                {/* タブコンテンツ - 生データ */}
+                {activeTab === 'raw' && (
+                  <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mb-8 transition-colors duration-300`}>
+                    <div className="flex justify-between items-center mb-6">
+                      <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-gray-100' : 'text-gray-900'}`}>生データ</h2>
+                      <div className="flex space-x-2">
+                        <button 
+                          onClick={() => {
+                            if (primaryXbrlData) {
+                              const dataToExport = useEnhancedMode && processedXbrlData 
+                                ? { ...primaryXbrlData, processedData: processedXbrlData } 
+                                : primaryXbrlData;
+                              
+                              const jsonString = JSON.stringify(dataToExport, null, 2);
+                              const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}.json`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }
+                          }}
+                          className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-colors duration-300`}
+                        >
+                          JSONでエクスポート
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (primaryXbrlData) {
+                              let csvContent = "項目名,値,単位,期間,タクソノミ要素\n";
+                              
+                              Object.values(primaryXbrlData.statements).forEach(statement => {
+                                statement.items.forEach(item => {
+                                  item.values.forEach(value => {
+                                    csvContent += `"${item.nameJa || item.name}",${value.value},"${value.unit || ''}","${value.period || ''}","${item.taxonomyElement || ''}"\n`;
+                                  });
+                                });
+                              });
+                              
+                              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}.csv`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              URL.revokeObjectURL(url);
+                            }
+                          }}
+                          className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-green-700 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white transition-colors duration-300`}
+                        >
+                          CSVでエクスポート
+                        </button>
+                      </div>
                     </div>
-                  ) : (
-                    <XBRLViewer xbrlData={primaryXbrlData} />
-                  )}
-                </div>
+                    
+                    <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} p-4 rounded-lg mb-6`}>
+                      <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>企業情報</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <span className="font-medium">企業名:</span> {companyName || '不明'}
+                          </p>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <span className="font-medium">会計年度:</span> {primaryXbrlData.companyInfo.fiscalYear || '不明'}
+                          </p>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <span className="font-medium">期末日:</span> {primaryXbrlData.companyInfo.endDate || '不明'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <span className="font-medium">証券コード:</span> {primaryXbrlData.companyInfo.ticker || '不明'}
+                          </p>
+                          <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                            <span className="font-medium">通貨単位:</span> {primaryXbrlData.companyInfo.currency || '円'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className={`min-w-full ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                        <thead className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
+                          <tr>
+                            <th className="px-4 py-2 text-left">項目名</th>
+                            <th className="px-4 py-2 text-left">値</th>
+                            <th className="px-4 py-2 text-left">単位</th>
+                            <th className="px-4 py-2 text-left">期間</th>
+                            <th className="px-4 py-2 text-left">タクソノミ要素</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(primaryXbrlData.statements).map(([statementType, statement]) => (
+                            <React.Fragment key={statementType}>
+                              <tr className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
+                                <td colSpan={5} className="px-4 py-2 font-semibold">
+                                  {statementType === 'BalanceSheet' ? '貸借対照表' : 
+                                   statementType === 'IncomeStatement' ? '損益計算書' : 
+                                   statementType === 'CashFlow' ? 'キャッシュフロー計算書' : statementType}
+                                </td>
+                              </tr>
+                              {statement.items.map((item, idx) => (
+                                item.values.map((value, valueIdx) => (
+                                  <tr key={`${idx}-${valueIdx}`} className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
+                                    <td className="px-4 py-2 border-b border-gray-700">{item.nameJa || item.name}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{value.value}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{value.unit || '-'}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{value.period || '-'}</td>
+                                    <td className="px-4 py-2 border-b border-gray-700">{item.taxonomyElement || '-'}</td>
+                                  </tr>
+                                ))
+                              ))}
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
                 
-                {/* 注記情報表示 */}
-                {comments.length > 0 && (
+                {/* 注記情報表示 - 財務諸表タブの場合のみ表示 */}
+                {activeTab === 'financial' && comments.length > 0 && (
                   <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} p-6 rounded-lg shadow-md mt-6 transition-colors duration-300`}>
                     <CommentsViewer 
                       comments={comments} 
@@ -479,17 +599,31 @@ const AppContent: React.FC = () => {
                 </div>
                 
                 <div className="mt-8 p-4 border border-dashed rounded-lg max-w-xl mx-auto">
-                  <h3 className={`text-lg font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} mb-2`}>新機能: 拡張版XBRL抽出ツール</h3>
+                  <h3 className={`text-lg font-medium ${isDarkMode ? 'text-gray-200' : 'text-gray-800'} mb-2`}>新機能: 拡張版XBRL解析ツール</h3>
                   <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mb-3`}>
-                    より高度なXBRLデータ解析が必要な場合は、「拡張版XBRL抽出ツール」タブをお試しください。
-                    階層構造表示やExcel/JSON形式への保存機能を備えています。
+                    より高度なXBRLデータ解析が必要な場合は、「拡張ツール」タブをお試しください。
+                    階層構造表示やExcel/JSON/CSV形式への保存機能を備えています。
                   </p>
-                  <button
-                    onClick={() => setActiveTab('advanced-extractor')}
-                    className={`px-4 py-2 ${isDarkMode ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-md transition-colors duration-200`}
-                  >
-                    拡張版XBRL抽出ツールを使う
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setActiveTab('advanced-extractor')}
+                      className={`px-4 py-2 ${isDarkMode ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded-md transition-colors duration-200`}
+                    >
+                      拡張ツールを使う
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('financial')}
+                      className={`px-4 py-2 ${isDarkMode ? 'bg-green-700 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white rounded-md transition-colors duration-200`}
+                    >
+                      財務諸表を見る
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('analysis')}
+                      className={`px-4 py-2 ${isDarkMode ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-700'} text-white rounded-md transition-colors duration-200`}
+                    >
+                      分析・グラフを見る
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
