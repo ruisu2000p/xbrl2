@@ -16,6 +16,8 @@ import CommentsViewer from './components/CommentsViewer';
 import { useDisplayMode } from './contexts/DisplayModeContext';
 import DisplayModeToggle from './components/common/DisplayModeToggle';
 import TableCellComponent from './components/html/TableCellComponent';
+import FormattedRawDataView from './components/raw-data/FormattedRawDataView';
+import SimpleRawDataView from './components/raw-data/SimpleRawDataView';
 
 /**
  * メインアプリケーションコンポーネント
@@ -536,45 +538,17 @@ const AppContent: React.FC = () => {
                     </div>
                     
                     <div className="overflow-x-auto">
-                      <table className={`min-w-full ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
-                        <thead className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
-                          <tr>
-                            <th className="px-4 py-2 text-left">項目名</th>
-                            <th className="px-4 py-2 text-left">値</th>
-                            <th className="px-4 py-2 text-left">単位</th>
-                            <th className="px-4 py-2 text-left">期間</th>
-                            <th className="px-4 py-2 text-left">タクソノミ要素</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(primaryXbrlData.statements).map(([statementType, statement]) => (
-                            <React.Fragment key={statementType}>
-                              <tr className={`${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
-                                <td colSpan={5} className="px-4 py-2 font-semibold">
-                                  {statementType === 'BalanceSheet' ? '貸借対照表' : 
-                                   statementType === 'IncomeStatement' ? '損益計算書' : 
-                                   statementType === 'CashFlow' ? 'キャッシュフロー計算書' : statementType}
-                                </td>
-                              </tr>
-                              {statement.items.map((item, idx) => (
-                                item.values.map((value, valueIdx) => (
-                                  <tr key={`${idx}-${valueIdx}`} className={`${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50'}`}>
-                                    <td className="px-4 py-2 border-b border-gray-700">
-                                      <TableCellComponent content={item.nameJa || item.name} />
-                                    </td>
-                                    <td className="px-4 py-2 border-b border-gray-700">
-                                      <TableCellComponent content={value.value} />
-                                    </td>
-                                    <td className="px-4 py-2 border-b border-gray-700">{value.unit || '-'}</td>
-                                    <td className="px-4 py-2 border-b border-gray-700">{value.period || '-'}</td>
-                                    <td className="px-4 py-2 border-b border-gray-700">{item.name || '-'}</td>
-                                  </tr>
-                                ))
-                              ))}
-                            </React.Fragment>
-                          ))}
-                        </tbody>
-                      </table>
+                      {isHtmlMode ? (
+                        <FormattedRawDataView 
+                          statements={primaryXbrlData.statements} 
+                          isDarkMode={isDarkMode} 
+                        />
+                      ) : (
+                        <SimpleRawDataView 
+                          statements={primaryXbrlData.statements} 
+                          isDarkMode={isDarkMode} 
+                        />
+                      )}
                     </div>
                   </div>
                 )}

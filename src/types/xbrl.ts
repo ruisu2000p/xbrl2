@@ -18,6 +18,7 @@ export interface FinancialItem {
   name: string;
   nameJa?: string; // 日本語名
   values: FinancialValue[];
+  isTotal?: boolean; // 合計行かどうかを示すフラグ
 }
 
 // 財務諸表の種類
