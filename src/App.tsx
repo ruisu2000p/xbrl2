@@ -542,6 +542,7 @@ const AppContent: React.FC = () => {
                         <FormattedRawDataView 
                           statements={primaryXbrlData.statements} 
                           isDarkMode={isDarkMode} 
+                          inlineXbrlElements={(primaryXbrlData as any).inlineXbrlElements}
                         />
                       ) : (
                         <SimpleRawDataView 
