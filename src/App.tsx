@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { DisplayModeProvider } from './contexts/DisplayModeContext';
 import XBRLUploader from './components/XBRLUploader';
@@ -18,6 +18,8 @@ import DisplayModeToggle from './components/common/DisplayModeToggle';
 import TableCellComponent from './components/html/TableCellComponent';
 import FormattedRawDataView from './components/raw-data/FormattedRawDataView';
 import SimpleRawDataView from './components/raw-data/SimpleRawDataView';
+import DatabaseManager from './components/DatabaseManager';
+import { DatabaseService } from './services/database/DatabaseService';
 
 /**
  * メインアプリケーションコンポーネント
@@ -42,8 +44,8 @@ const AppContent: React.FC = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { isHtmlMode } = useDisplayMode();
   
-  // 現在の表示タブ（財務諸表、分析・グラフ、生データ、拡張ツール）
-  const [activeTab, setActiveTab] = useState<'financial' | 'analysis' | 'raw' | 'advanced-extractor'>('financial');
+  // 現在の表示タブ（財務諸表、分析・グラフ、生データ、拡張ツール、データベース）
+  const [activeTab, setActiveTab] = useState<'financial' | 'analysis' | 'raw' | 'advanced-extractor' | 'database'>('financial');
   
   const [language, setLanguage] = useState<'ja' | 'en'>('ja');
   
@@ -186,6 +188,24 @@ const AppContent: React.FC = () => {
     setUseEnhancedMode(prev => !prev);
   };
   
+  useEffect(() => {
+    DatabaseService.initDatabase().then(success => {
+      if (success) {
+        console.log('データベース接続が初期化されました');
+      } else {
+        console.error('データベース接続の初期化に失敗しました');
+      }
+    });
+    
+    return () => {
+      DatabaseService.closeDatabase().then(success => {
+        if (success) {
+          console.log('データベース接続が閉じられました');
+        }
+      });
+    };
+  }, []);
+  
   /**
    * 改善版XBRL抽出ツールの処理結果を受け取るハンドラー
    */
@@ -309,6 +329,21 @@ const AppContent: React.FC = () => {
                 </span>
               )}
             </button>
+            <button
+              onClick={() => setActiveTab('database')}
+              className={`
+                pb-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'database'
+                  ? isDarkMode 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-primary-500 text-primary-600'
+                  : isDarkMode
+                    ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              データベース
+            </button>
           </nav>
         </div>
         
@@ -318,6 +353,20 @@ const AppContent: React.FC = () => {
             <EnhancedXBRLTableExtractor 
               isDarkMode={isDarkMode}
               onProcessComplete={handleProcessComplete}
+            />
+          </div>
+        ) : activeTab === 'database' ? (
+          <div className="mb-8">
+            <DatabaseManager 
+              xbrlData={primaryXbrlData}
+              onLoadData={(data) => {
+                setPrimaryXbrlData(data);
+                setActiveTab('financial');
+                if (data.companyInfo && data.companyInfo.name) {
+                  setCompanyName(data.companyInfo.name);
+                }
+              }}
+              isDarkMode={isDarkMode}
             />
           </div>
         ) : (
