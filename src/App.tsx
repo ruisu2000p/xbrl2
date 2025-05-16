@@ -19,7 +19,7 @@ import TableCellComponent from './components/html/TableCellComponent';
 import FormattedRawDataView from './components/raw-data/FormattedRawDataView';
 import SimpleRawDataView from './components/raw-data/SimpleRawDataView';
 import DatabaseManager from './components/DatabaseManager';
-import { DatabaseService } from './services/database/DatabaseService';
+import { UnifiedDatabaseService } from './services/database/UnifiedDatabaseService';
 
 /**
  * メインアプリケーションコンポーネント
@@ -189,7 +189,7 @@ const AppContent: React.FC = () => {
   };
   
   useEffect(() => {
-    DatabaseService.initDatabase().then(success => {
+    UnifiedDatabaseService.initDatabase().then(success => {
       if (success) {
         console.log('データベース接続が初期化されました');
       } else {
@@ -198,7 +198,7 @@ const AppContent: React.FC = () => {
     });
     
     return () => {
-      DatabaseService.closeDatabase().then(success => {
+      UnifiedDatabaseService.closeDatabase().then(success => {
         if (success) {
           console.log('データベース接続が閉じられました');
         }

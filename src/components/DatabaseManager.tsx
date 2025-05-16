@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { XBRLData } from '../types/xbrl';
-import { DatabaseService } from '../services/database/DatabaseService';
+import { UnifiedDatabaseService, DatabaseType } from '../services/database/UnifiedDatabaseService';
 
 interface DatabaseManagerProps {
   xbrlData: XBRLData | null;
@@ -22,27 +22,30 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({
   const [saveSuccess, setSaveSuccess] = useState<boolean | null>(null);
   const [loadSuccess, setLoadSuccess] = useState<boolean | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<boolean | null>(null);
+  const [databaseType, setDatabaseType] = useState<DatabaseType>(UnifiedDatabaseService.getDatabaseType());
+  const [isMigrating, setIsMigrating] = useState<boolean>(false);
+  const [migrationSuccess, setMigrationSuccess] = useState<boolean | null>(null);
 
   useEffect(() => {
     loadCompanyList();
   }, []);
 
-  const loadCompanyList = () => {
-    const list = DatabaseService.getCompanyList();
+  const loadCompanyList = async () => {
+    const list = await UnifiedDatabaseService.getCompanyList();
     setCompanies(list);
   };
 
-  const handleSaveData = () => {
+  const handleSaveData = async () => {
     if (!xbrlData) {
       setSaveSuccess(false);
       return;
     }
 
-    const success = DatabaseService.saveXBRLData(xbrlData);
+    const success = await UnifiedDatabaseService.saveXBRLData(xbrlData);
     setSaveSuccess(success);
     
     if (success) {
-      loadCompanyList();
+      await loadCompanyList();
       
       setTimeout(() => {
         setSaveSuccess(null);
@@ -50,13 +53,13 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({
     }
   };
 
-  const handleLoadData = () => {
+  const handleLoadData = async () => {
     if (!selectedCompany) {
       setLoadSuccess(false);
       return;
     }
 
-    const data = DatabaseService.getXBRLData(selectedCompany);
+    const data = await UnifiedDatabaseService.getXBRLData(selectedCompany);
     if (data) {
       onLoadData(data);
       setLoadSuccess(true);
@@ -69,23 +72,44 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({
     }
   };
 
-  const handleDeleteData = () => {
+  const handleDeleteData = async () => {
     if (!selectedCompany) {
       setDeleteSuccess(false);
       return;
     }
 
-    const success = DatabaseService.deleteXBRLData(selectedCompany);
+    const success = await UnifiedDatabaseService.deleteXBRLData(selectedCompany);
     setDeleteSuccess(success);
     
     if (success) {
-      loadCompanyList();
+      await loadCompanyList();
       setSelectedCompany('');
       
       setTimeout(() => {
         setDeleteSuccess(null);
       }, 3000);
     }
+  };
+
+  const handleDatabaseTypeChange = (type: DatabaseType) => {
+    UnifiedDatabaseService.setDatabaseType(type);
+    setDatabaseType(type);
+  };
+
+  const handleMigrateData = async () => {
+    setIsMigrating(true);
+    const success = await UnifiedDatabaseService.migrateFromLocalStorage();
+    setMigrationSuccess(success);
+    
+    if (success) {
+      await loadCompanyList();
+      
+      setTimeout(() => {
+        setMigrationSuccess(null);
+      }, 3000);
+    }
+    
+    setIsMigrating(false);
   };
 
   return (
@@ -95,6 +119,64 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({
       </h2>
       
       <div className="space-y-6">
+        {/* データベースタイプの選択 */}
+        <div>
+          <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+            データベースタイプ
+          </h3>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => handleDatabaseTypeChange(DatabaseType.LocalStorage)}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                databaseType === DatabaseType.LocalStorage
+                  ? isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-600 text-white'
+                  : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              LocalStorage
+            </button>
+            <button
+              onClick={() => handleDatabaseTypeChange(DatabaseType.IndexedDB)}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                databaseType === DatabaseType.IndexedDB
+                  ? isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-600 text-white'
+                  : isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              IndexedDB
+            </button>
+          </div>
+          
+          {/* データ移行ボタン */}
+          {databaseType === DatabaseType.IndexedDB && (
+            <div className="mt-2">
+              <button
+                onClick={handleMigrateData}
+                disabled={isMigrating}
+                className={`px-3 py-1 text-sm rounded transition-colors ${
+                  isMigrating
+                    ? `${isDarkMode ? 'bg-gray-600 text-gray-400' : 'bg-gray-300 text-gray-500'} cursor-not-allowed`
+                    : `${isDarkMode ? 'bg-purple-600 hover:bg-purple-700' : 'bg-purple-600 hover:bg-purple-700'} text-white`
+                }`}
+              >
+                {isMigrating ? 'データ移行中...' : 'LocalStorageからデータを移行'}
+              </button>
+              
+              {migrationSuccess !== null && (
+                <div className={`mt-2 ${
+                  migrationSuccess 
+                    ? isDarkMode ? 'text-green-400' : 'text-green-600'
+                    : isDarkMode ? 'text-red-400' : 'text-red-600'
+                }`}>
+                  {migrationSuccess 
+                    ? 'データ移行が完了しました'
+                    : 'データ移行に失敗しました'}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      
         {/* 現在のデータを保存 */}
         <div>
           <h3 className={`text-lg font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -202,7 +284,10 @@ const DatabaseManager: React.FC<DatabaseManagerProps> = ({
       
       <div className={`mt-4 p-4 rounded-md ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'}`}>
         <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-          <strong>注意:</strong> 現在のデータはブラウザのローカルストレージに保存されます。
+          <strong>データベース:</strong> {databaseType === DatabaseType.IndexedDB ? 'IndexedDB' : 'LocalStorage'}
+        </p>
+        <p className={`text-sm mt-1 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+          <strong>注意:</strong> IndexedDBはブラウザのデータベースを使用し、より多くのデータを保存できます。
           実際の運用では、サーバーサイドのデータベース（MySQL、PostgreSQL、MongoDBなど）を使用することをお勧めします。
         </p>
       </div>
