@@ -133,6 +133,21 @@ export interface TaxonomyReference {
 }
 
 /**
+ * インラインXBRL要素の型定義
+ */
+export interface InlineXBRLElement {
+  tag: string;
+  name: string;
+  value: string | number;
+  contextRef: string;
+  unitRef: string | null;
+  decimals: string | null;
+  format: string | null;
+  scale: string | null;
+  originalHtml: string;
+}
+
+/**
  * 財務データ全体の型定義
  * XBRLData型を拡張
  */
@@ -150,4 +165,5 @@ export interface FinancialData {
   }[];
   taxonomyReferences: TaxonomyReference[];
   comments?: CommentSection[];
+  inlineXbrlElements?: InlineXBRLElement[]; // インラインXBRL要素
 }
