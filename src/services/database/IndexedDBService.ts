@@ -92,7 +92,12 @@ export class IndexedDBService {
 
       await db.put('companies', companyInfo);
 
-      await db.put('xbrlData', xbrlData, companyId);
+      const xbrlDataWithId = {
+        ...xbrlData,
+        id: companyId
+      } as XBRLData & { id: string };
+      
+      await db.put('xbrlData', xbrlDataWithId);
 
       console.log(`XBRLデータを保存しました: ${companyId}`);
       return true;
