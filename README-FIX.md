@@ -36,7 +36,6 @@
 修正を適用するには、以下の手順に従ってください：
 
 1. `src/types/extractors/improved-xbrl-types.ts` を修正版のファイルで置き換える:
-
 ```bash
 cp src/types/extractors/improved-xbrl-types-modified.ts src/types/extractors/improved-xbrl-types.ts
 ```
