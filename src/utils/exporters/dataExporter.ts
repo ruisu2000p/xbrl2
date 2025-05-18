@@ -86,12 +86,21 @@ const exportAsCSV = (
     item.taxonomyElement.namespace + ':' + item.taxonomyElement.name
   ]);
 
+  const escapeCsvField = (field: string | number): string => {
+    const str = String(field);
+    if (/[,"\n]/.test(str)) {
+      return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+  };
+
   const csvContent = [
-    header.join(','),
-    ...rows.map(row => row.join(','))
+    header.map(escapeCsvField).join(','),
+    ...rows.map(row => row.map(escapeCsvField).join(','))
   ].join('\n');
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
   saveAs(blob, `${fileName}.csv`);
 };
 
