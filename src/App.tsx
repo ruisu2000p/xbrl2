@@ -20,6 +20,8 @@ import FormattedRawDataView from './components/raw-data/FormattedRawDataView';
 import SimpleRawDataView from './components/raw-data/SimpleRawDataView';
 import DatabaseManager from './components/DatabaseManager';
 import { UnifiedDatabaseService } from './services/database/UnifiedDatabaseService';
+import { exportFinancialData } from './utils/exporters/dataExporter';
+import { convertXBRLDataToFinancialData } from './utils/exporters/xbrlDataConverter';
 
 /**
  * メインアプリケーションコンポーネント
@@ -514,49 +516,38 @@ const AppContent: React.FC = () => {
                                 ? { ...primaryXbrlData, processedData: processedXbrlData } 
                                 : primaryXbrlData;
                               
-                              const jsonString = JSON.stringify(dataToExport, null, 2);
-                              const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8;' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}.json`;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
+                              const financial = convertXBRLDataToFinancialData(primaryXbrlData, comments);
+                              const fileName = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}`;
+                              exportFinancialData(financial, 'json', { fileName });
                             }
                           }}
                           className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-blue-700 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white transition-colors duration-300`}
                         >
                           JSONでエクスポート
                         </button>
-                        <button 
+                        <button
                           onClick={() => {
                             if (primaryXbrlData) {
-                              let csvContent = "項目名,値,単位,期間,タクソノミ要素\n";
-                              
-                              Object.values(primaryXbrlData.statements).forEach(statement => {
-                                statement.items.forEach(item => {
-                                  item.values.forEach(value => {
-                                    csvContent += `"${item.nameJa || item.name}",${value.value},"${value.unit || ''}","${value.period || ''}","${item.name}"\n`;
-                                  });
-                                });
-                              });
-                              
-                              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}.csv`;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
-                              URL.revokeObjectURL(url);
+                              const financial = convertXBRLDataToFinancialData(primaryXbrlData, comments);
+                              const fileName = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}`;
+                              exportFinancialData(financial, 'csv', { fileName });
                             }
                           }}
                           className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-green-700 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white transition-colors duration-300`}
                         >
                           CSVでエクスポート
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (primaryXbrlData) {
+                              const financial = convertXBRLDataToFinancialData(primaryXbrlData, comments);
+                              const fileName = `${companyName || 'xbrl-data'}_${new Date().toISOString().split('T')[0]}`;
+                              exportFinancialData(financial, 'excel', { fileName });
+                            }
+                          }}
+                          className={`px-3 py-1 text-sm rounded ${isDarkMode ? 'bg-purple-700 hover:bg-purple-600' : 'bg-purple-600 hover:bg-purple-700'} text-white transition-colors duration-300`}
+                        >
+                          Excelでエクスポート
                         </button>
                       </div>
                     </div>
