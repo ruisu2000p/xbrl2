@@ -19,6 +19,8 @@ import TableCellComponent from './components/html/TableCellComponent';
 import FormattedRawDataView from './components/raw-data/FormattedRawDataView';
 import SimpleRawDataView from './components/raw-data/SimpleRawDataView';
 import DatabaseManager from './components/DatabaseManager';
+import BatchImporter from './components/BatchImporter';
+import CompanySearch from './components/CompanySearch';
 import { UnifiedDatabaseService } from './services/database/UnifiedDatabaseService';
 import { exportFinancialData } from './utils/exporters/dataExporter';
 import { convertXBRLDataToFinancialData } from './utils/exporters/xbrlDataConverter';
@@ -46,8 +48,8 @@ const AppContent: React.FC = () => {
   const { isDarkMode, toggleDarkMode } = useTheme();
   const { isHtmlMode } = useDisplayMode();
   
-  // 現在の表示タブ（財務諸表、分析・グラフ、生データ、拡張ツール、データベース）
-  const [activeTab, setActiveTab] = useState<'financial' | 'analysis' | 'raw' | 'advanced-extractor' | 'database'>('financial');
+  // 現在の表示タブ（財務諸表、分析・グラフ、生データ、拡張ツール、データベース、一括処理、企業検索）
+  const [activeTab, setActiveTab] = useState<'financial' | 'analysis' | 'raw' | 'advanced-extractor' | 'database' | 'batch' | 'search'>('financial');
   
   const [language, setLanguage] = useState<'ja' | 'en'>('ja');
   
@@ -346,6 +348,36 @@ const AppContent: React.FC = () => {
             >
               データベース
             </button>
+            <button
+              onClick={() => setActiveTab('batch')}
+              className={`
+                pb-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'batch'
+                  ? isDarkMode 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-primary-500 text-primary-600'
+                  : isDarkMode
+                    ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              一括処理
+            </button>
+            <button
+              onClick={() => setActiveTab('search')}
+              className={`
+                pb-4 px-1 border-b-2 font-medium text-sm
+                ${activeTab === 'search'
+                  ? isDarkMode 
+                    ? 'border-blue-500 text-blue-400' 
+                    : 'border-primary-500 text-primary-600'
+                  : isDarkMode
+                    ? 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
+              `}
+            >
+              企業検索
+            </button>
           </nav>
         </div>
         
@@ -369,6 +401,30 @@ const AppContent: React.FC = () => {
                 }
               }}
               isDarkMode={isDarkMode}
+            />
+          </div>
+        ) : activeTab === 'batch' ? (
+          <div className="mb-8">
+            <BatchImporter
+              onImportComplete={(count) => {
+                alert(`${count}社のデータをインポートしました`);
+                setActiveTab('search');
+              }}
+              onProgress={(current, total) => {
+                console.log(`進捗: ${current}/${total}`);
+              }}
+            />
+          </div>
+        ) : activeTab === 'search' ? (
+          <div className="mb-8">
+            <CompanySearch
+              onCompanySelect={(companyId, xbrlData) => {
+                setPrimaryXbrlData(xbrlData);
+                if (xbrlData.companyInfo && xbrlData.companyInfo.name) {
+                  setCompanyName(xbrlData.companyInfo.name);
+                }
+                setActiveTab('financial');
+              }}
             />
           </div>
         ) : (
