@@ -406,11 +406,11 @@ const AppContent: React.FC = () => {
         ) : activeTab === 'batch' ? (
           <div className="mb-8">
             <BatchImporter
-              onImportComplete={(count) => {
+              onImportComplete={(count: number) => {
                 alert(`${count}社のデータをインポートしました`);
                 setActiveTab('search');
               }}
-              onProgress={(current, total) => {
+              onProgress={(current: number, total: number) => {
                 console.log(`進捗: ${current}/${total}`);
               }}
             />
@@ -418,7 +418,7 @@ const AppContent: React.FC = () => {
         ) : activeTab === 'search' ? (
           <div className="mb-8">
             <CompanySearch
-              onCompanySelect={(companyId, xbrlData) => {
+              onCompanySelect={(companyId: string, xbrlData: any) => {
                 setPrimaryXbrlData(xbrlData);
                 if (xbrlData.companyInfo && xbrlData.companyInfo.name) {
                   setCompanyName(xbrlData.companyInfo.name);

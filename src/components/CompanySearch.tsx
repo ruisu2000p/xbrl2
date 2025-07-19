@@ -39,6 +39,34 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ onCompanySelect }) => {
     sortOrder: 'asc'
   });
 
+  const getFinancialValue = (company: CompanyData, itemName: string): number => {
+    for (const statement of Object.values(company.xbrlData.statements)) {
+      for (const item of statement.items) {
+        if ((item.nameJa || item.name).includes(itemName) && item.values.length > 0) {
+          const value = item.values[0].value;
+          return typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) || 0 : value;
+        }
+      }
+    }
+    return 0;
+  };
+
+  const getRatioValue = (company: CompanyData, ratioName: string): number => {
+    const ratio = company.ratios.find(r => r.name.includes(ratioName));
+    return ratio ? ratio.value : 0;
+  };
+
+  const formatCurrency = (value: number): string => {
+    if (value >= 1000000000) {
+      return `${(value / 1000000000).toFixed(1)}B円`;
+    } else if (value >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M円`;
+    } else if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K円`;
+    }
+    return `${value.toLocaleString()}円`;
+  };
+
   useEffect(() => {
     loadCompanies();
   }, []);
@@ -130,35 +158,7 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ onCompanySelect }) => {
     });
 
     return filtered;
-  }, [companies, filters]);
-
-  const getFinancialValue = (company: CompanyData, itemName: string): number => {
-    for (const statement of Object.values(company.xbrlData.statements)) {
-      for (const item of statement.items) {
-        if ((item.nameJa || item.name).includes(itemName) && item.values.length > 0) {
-          const value = item.values[0].value;
-          return typeof value === 'string' ? parseFloat(value.replace(/,/g, '')) || 0 : value;
-        }
-      }
-    }
-    return 0;
-  };
-
-  const getRatioValue = (company: CompanyData, ratioName: string): number => {
-    const ratio = company.ratios.find(r => r.name.includes(ratioName));
-    return ratio ? ratio.value : 0;
-  };
-
-  const formatCurrency = (value: number): string => {
-    if (value >= 1000000000) {
-      return `${(value / 1000000000).toFixed(1)}B円`;
-    } else if (value >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M円`;
-    } else if (value >= 1000) {
-      return `${(value / 1000).toFixed(1)}K円`;
-    }
-    return `${value.toLocaleString()}円`;
-  };
+  }, [companies, filters, getFinancialValue, getRatioValue]);
 
   if (loading) {
     return (
@@ -171,8 +171,18 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ onCompanySelect }) => {
   }
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">企業検索・フィルタ</h3>
+    <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+      <div className="flex items-center mb-6">
+        <div className="bg-green-100 p-3 rounded-full mr-4">
+          <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-900">企業検索・フィルタ</h3>
+          <p className="text-gray-600">インポートされた企業の財務データを検索・比較できます</p>
+        </div>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div>
@@ -224,34 +234,80 @@ const CompanySearch: React.FC<CompanySearchProps> = ({ onCompanySelect }) => {
         </div>
       </div>
       
-      <div className="mb-4">
-        <p className="text-sm text-gray-600">
-          {filteredAndSortedCompanies.length} / {companies.length} 社が表示されています
-        </p>
+      <div className="mb-6 flex items-center justify-between bg-gray-50 p-4 rounded-lg">
+        <div className="flex items-center">
+          <svg className="w-5 h-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+          <span className="text-sm font-medium text-gray-700">
+            検索結果: <span className="text-blue-600 font-semibold">{filteredAndSortedCompanies.length}</span> / {companies.length} 社
+          </span>
+        </div>
+        {companies.length > 0 && (
+          <div className="text-xs text-gray-500">
+            最終更新: {new Date().toLocaleString('ja-JP')}
+          </div>
+        )}
       </div>
       
       <div className="max-h-96 overflow-y-auto">
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-4">
           {filteredAndSortedCompanies.map((company) => (
             <div
               key={company.id}
               onClick={() => onCompanySelect(company.id, company.xbrlData)}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              className="p-5 border border-gray-200 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-300 group"
             >
               <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-medium text-gray-900">{company.name}</h4>
-                  <p className="text-sm text-gray-500">
-                    売上高: {formatCurrency(getFinancialValue(company, '売上高'))}
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center mb-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3 group-hover:bg-blue-600 transition-colors"></div>
+                    <h4 className="font-semibold text-gray-900 truncate group-hover:text-blue-900 transition-colors">
+                      {company.name.length > 50 ? `${company.name.substring(0, 50)}...` : company.name}
+                    </h4>
+                  </div>
+                  {company.xbrlData.companyInfo?.businessOverview && (
+                    <div className="mb-3 p-2 bg-blue-50 group-hover:bg-blue-100 rounded text-xs text-gray-700 group-hover:text-blue-800 transition-colors">
+                      <span className="font-medium">事業概要: </span>
+                      {company.xbrlData.companyInfo.businessOverview.length > 100 
+                        ? `${company.xbrlData.companyInfo.businessOverview.substring(0, 100)}...`
+                        : company.xbrlData.companyInfo.businessOverview
+                      }
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                      <span className="text-gray-600">売上高: </span>
+                      <span className="font-medium text-gray-900 ml-1">
+                        {formatCurrency(getFinancialValue(company, '売上高'))}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                      </svg>
+                      <span className="text-gray-600">総資産: </span>
+                      <span className="font-medium text-gray-900 ml-1">
+                        {formatCurrency(getFinancialValue(company, '総資産'))}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-600">
-                    利益率: {getRatioValue(company, '売上高利益率').toFixed(2)}%
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    総資産: {formatCurrency(getFinancialValue(company, '総資産'))}
-                  </p>
+                <div className="text-right ml-4">
+                  <div className="bg-gray-100 group-hover:bg-blue-100 px-3 py-1 rounded-full transition-colors">
+                    <span className="text-xs text-gray-600 group-hover:text-blue-700">利益率</span>
+                    <div className="font-bold text-lg text-gray-900 group-hover:text-blue-900">
+                      {getRatioValue(company, '売上高利益率').toFixed(2)}%
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>

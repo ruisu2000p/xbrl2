@@ -56,6 +56,7 @@ export interface CompanyInfo {
   ticker?: string;
   fiscalYear?: string;
   endDate?: string;
+  businessOverview?: string;
 }
 
 // XBRLデータ全体
